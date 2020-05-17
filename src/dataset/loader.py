@@ -43,7 +43,9 @@ def _construct_loader(
 
     train = True if split == "train" else False
     # Construct the dataset
-    dataset = _DATASET_CATALOG[dataset_name](root=root, train=train, download=True, transform=transform)
+    dataset = _DATASET_CATALOG[dataset_name](
+        root=root, train=train, download=True, transform=transform
+    )
     ds_sampler = None
     if split != "test":
         dataset_size = len(dataset)

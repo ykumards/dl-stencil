@@ -88,7 +88,7 @@ def train_epoch(
     pbar = tqdm(enumerate(train_loader), total=len(train_loader), leave=False)
     for cur_iter, batch in pbar:
         # Transfer the data to the current GPU device
-        x, y = _prepare_batch(batch)        # Perform the forward pass
+        x, y = _prepare_batch(batch)  # Perform the forward pass
         logits, probas = model(x)
         _, predicted_labels = torch.max(probas, 1)
         # Compute the loss
