@@ -3,15 +3,13 @@ import torch
 from core.config import cfg
 import utils.logging as lu
 
-from models.resnet18 import ResNet18
+from models.flat import FlatVAE
 
 
 logger = lu.get_logger(__name__)
 
 # Supported models
-_models = {
-    "resnet18": ResNet18,
-}
+_models = {"flat": FlatVAE}
 
 
 def build_model():
@@ -24,11 +22,7 @@ def build_model():
     ), "Cannot use more GPU devices than available"
 
     # Construct the model
-    model = _models[cfg.MODEL.TYPE](
-        layers=[2, 2, 2, 2],
-        num_classes=cfg.MODEL.NUM_CLASSES,
-        grayscale=cfg.MODEL.GRAYSCALE,
-    )
+    model = _models[cfg.MODEL.TYPE]()
     # Determine the GPU used by the current process
     cur_device = torch.cuda.current_device()
     # Transfer the model to the current GPU device

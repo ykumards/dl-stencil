@@ -29,11 +29,14 @@ _C.MODEL.INPUT_DIM = 1
 # Number of classes
 _C.MODEL.NUM_CLASSES = 10
 
+# Latent variable dimension
+_C.MODEL.Z_DIM = 64
+
 # Is input in grayscale (=> 1 channel)
 _C.MODEL.GRAYSCALE = True
 
 # Loss function (see pycls/models/loss.py for options)
-_C.MODEL.LOSS_FUN = "bce_logits"
+_C.MODEL.LOSS_FUN = "mse_loss"
 
 
 # ---------------------------------------------------------------------------- #
@@ -110,8 +113,12 @@ _C.TRAIN = CN()
 # Dataset and split
 _C.TRAIN.DATASET = ""
 _C.TRAIN.SPLIT = "train"
+
 # validation set size
 _C.TRAIN.VALID_SIZE = 0.2
+
+# Image size
+_C.TRAIN.IM_SIZE = 32
 
 # Total mini-batch size
 _C.TRAIN.BATCH_SIZE = 128

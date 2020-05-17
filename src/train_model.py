@@ -64,17 +64,16 @@ def is_eval_epoch(cur_epoch):
 
 def _prepare_batch(batch):
     x = batch[0].to(cfg.DEVICE)
-    y = batch[1].to(cfg.DEVICE)
-    return x, y
+    return x
 
 
 def train_epoch(
-    train_loader,
-    model,
-    loss_fun,
-    optimizer,
-    train_meter,
-    cur_epoch,
+    train_loader: torch.data.utils.DataLoader,
+    model: nn.Module,
+    loss_funs: List,
+    optimizer: torch.optim.Optimizer,
+    train_meter: Meter,
+    cur_epoch: int,
     mode="train",
     tb=None,
 ):
@@ -88,11 +87,15 @@ def train_epoch(
     pbar = tqdm(enumerate(train_loader), total=len(train_loader), leave=False)
     for cur_iter, batch in pbar:
         # Transfer the data to the current GPU device
-        x, y = _prepare_batch(batch)  # Perform the forward pass
-        logits, probas = model(x)
-        _, predicted_labels = torch.max(probas, 1)
-        # Compute the loss
-        loss = loss_fun(logits, y)
+        x = _prepare_batch(batch)
+        # Perform the forward pass
+        x_pred, mu, logvar = model(x)
+        # Compute reconstruction loss
+        reconc_loss = loss_funs[0](x_pred, x)
+        # Compute kld loss
+        kl_loss = loss_funs[1](mu, logvar)
+        # Total loss is sum of reconc and kl_div
+        loss = reconc_loss + kl_loss
         # Perform the backward pass
         optimizer.zero_grad()
         loss.backward()
@@ -100,14 +103,13 @@ def train_epoch(
         torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.OPTIM.GRAD_CLIP_T)
         # Update the parameters
         optimizer.step()
-        # Compute the errors
-        label_err = mu.label_errors(predicted_labels, y)
         # Copy the stats from GPU to CPU (sync point)
-        loss, label_err = loss.item(), label_err.item()
+        loss = loss.item()
+        reconc_loss, kl_loss = reconc_loss.item(), kl_loss.item()
 
         train_meter.iter_toc()
         # Update and log stats
-        train_meter.update_stats(label_err, loss, x.size(0), lr)
+        train_meter.update_stats(loss, x.size(0), lr)
         train_meter.log_iter_stats(cur_epoch, cur_iter)
         train_meter.iter_tic()
 
@@ -118,7 +120,12 @@ def train_epoch(
     if tb is not None:
         # log scalars
         epoch_stats = train_meter.get_epoch_stats(cur_epoch)
-        tb.write_scalar(epoch_stats, cur_epoch, ["loss", "label_err"], tag=mode)
+        tb.write_scalar(
+            epoch_stats,
+            cur_epoch,
+            ["loss", "kl_loss", "reconc_loss", "label_err"],
+            tag=mode,
+        )
 
         tb.write_optim_scalar(optimizer, cur_epoch, tag=mode)
         tb.write_model_weight_hist(model, cur_epoch, tag=mode)
@@ -129,7 +136,13 @@ def train_epoch(
 
 @torch.no_grad()
 def test_epoch(
-    test_loader, model, loss_fun, test_meter, cur_epoch, mode="test", tb=None
+    test_loader: torch.utils.data.DataLoader,
+    model: nn.Module,
+    loss_funs: List,
+    test_meter: Mete,
+    cur_epoch: int,
+    mode="test",
+    tb=None,
 ):
     """Evaluates the model on the test set."""
 
@@ -139,20 +152,22 @@ def test_epoch(
     pbar = tqdm(enumerate(test_loader), total=len(test_loader), leave=False)
     for cur_iter, batch in pbar:
         # Transfer the data to the current GPU device
-        x, y = _prepare_batch(batch)
-        # Compute the predictions
-        logits, probas = model(x)
-        _, predicted_labels = torch.max(probas, 1)
-        # Compute test loss
-        loss = loss_fun(logits, y)
-        # Compute the errors
-        label_err = mu.label_errors(predicted_labels, y)
+        x = _prepare_batch(batch)
+        # Perform the forward pass
+        x_pred, mu, logvar = model(x)
+        # Compute reconstruction loss
+        reconc_loss = loss_funs[0](x_pred, x)
+        # Compute kld loss
+        kl_loss = loss_funs[1](mu, logvar)
+        # Total loss is sum of reconc and kl_div
+        loss = reconc_loss + kl_loss
         # Copy the stats from GPU to CPU (sync point)
-        loss, label_err = loss.item(), label_err.item()
+        loss = loss.item()
+        reconc_loss, kl_loss = reconc_loss.item(), kl_loss.item()
 
         test_meter.iter_toc()
         # Update and log stats
-        test_meter.update_stats(label_err, loss, x.size(0))
+        test_meter.update_stats(loss, x.size(0))
         test_meter.log_iter_stats(cur_epoch, cur_iter)
         test_meter.iter_tic()
 
@@ -164,7 +179,12 @@ def test_epoch(
     if tb is not None:
         # log scalars
         epoch_stats = test_meter.get_epoch_stats(cur_epoch)
-        tb.write_scalar(epoch_stats, cur_epoch, ["loss", "label_err"], tag=mode)
+        tb.write_scalar(
+            epoch_stats,
+            cur_epoch,
+            ["loss", "kl_loss", "reconc_loss", "label_err"],
+            tag=mode,
+        )
 
     test_meter.reset()
     return epoch_loss
@@ -177,7 +197,7 @@ def train_model():
     log_model_info(model)
 
     # Define the loss function
-    loss_fun = losses.get_loss_fun()
+    loss_funs = losses.get_loss_fun_vae()
     # Construct the optimizer
     optimizer = optim.construct_optimizer(model)
 
@@ -209,7 +229,7 @@ def train_model():
         train_epoch(
             train_loader,
             model,
-            loss_fun,
+            loss_funs
             optimizer,
             train_meter,
             cur_epoch,
@@ -226,7 +246,7 @@ def train_model():
         # Evaluate the model
         if is_eval_epoch(cur_epoch):
             val_loss = test_epoch(
-                val_loader, model, loss_fun, val_meter, cur_epoch, mode="valid", tb=tb
+                val_loader, model, loss_funs val_meter, cur_epoch, mode="valid", tb=tb
             )
             # Save the best model based on val score
             if val_loss < min_val_loss:
@@ -252,10 +272,10 @@ def train_model():
 
     print("=" * 100)
     test_epoch(
-        train_loader, model, loss_fun, train_meter, cur_epoch, mode="train", tb=None
+        train_loader, model, loss_funs train_meter, cur_epoch, mode="train", tb=None
     )
     test_epoch(
-        test_loader, model, loss_fun, test_meter, cur_epoch, mode="test", tb=None
+        test_loader, model, loss_funs test_meter, cur_epoch, mode="test", tb=None
     )
 
     if tb is not None:

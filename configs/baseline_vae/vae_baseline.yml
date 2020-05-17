@@ -5,9 +5,9 @@ IS_TB_LOG: True
 PATHS:
   OUT_DIR: ../experiments
   EXPERIMENT_NAME: cool_experiment
-  DATAPATH: ../data/mnist/
+  DATAPATH: ../data/cifar10/
 MODEL:
-  TYPE: resnet18
+  TYPE: flat
   INPUT_DIM: 315
   NUM_CLASSES: 10
   GRAYSCALE: True

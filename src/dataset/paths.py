@@ -15,7 +15,7 @@ def has_data_path(dataset_name):
 
 def get_data_path(dataset_name):
     """Retrieves data path for the dataset."""
-    return _paths[dataset_name]
+    return cfg.PATHS.DATAPATH
 
 
 def register_path(name, path):

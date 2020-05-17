@@ -149,9 +149,7 @@ class Meter(object):
         stats = self.get_epoch_stats(cur_epoch)
         lu.log_json_stats(stats)
 
-    def print_epoch_stats(
-        self, cur_epoch, keys_to_print=["label_err", "loss"],
-    ):
+    def print_epoch_stats(self, cur_epoch, keys_to_print=["label_err", "loss"]):
         print_str = self.mode.upper() + ": "
         stats = self.get_epoch_stats(cur_epoch)
         print_str += f"epoch : {stats['epoch']} "
