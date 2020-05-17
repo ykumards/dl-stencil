@@ -12,13 +12,11 @@ from torchvision import transforms
 
 from core.config import cfg
 import dataset.paths as dp
-from dataset.mnist import MNISTDataset
+from dataset.cifar10 import Cifar10
 
 
 # Supported datasets
-_DATASET_CATALOG = {
-    "mnist": datasets.MNIST,
-}
+_DATASET_CATALOG = {"cifar10": Cifar10}
 
 _DEFAULT_TRANSFORM = transforms.ToTensor()
 

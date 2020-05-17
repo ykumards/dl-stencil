@@ -5,9 +5,7 @@ import os
 _DEF_DATA_DIR = "/data"
 
 # Data paths
-_paths = {
-    "news": _DEF_DATA_DIR + "/mnist/",
-}
+_paths = {"news": _DEF_DATA_DIR + "/mnist/"}
 
 
 def has_data_path(dataset_name):
