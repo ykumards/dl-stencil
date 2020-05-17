@@ -20,6 +20,8 @@ Scroll through different branches for different training setups:
 * lm (WIP) - Language model on IMDB using a simple LSTM
 * gan (WIP) - Train a GAN model on TBD
 
+After creating a new repo with this template, you might have to make the corresponding branch as the default branch using either [this](https://stackoverflow.com/questions/2763006/make-the-current-git-branch-a-master-branch) or [this](https://help.github.com/en/github/administering-a-repository/setting-the-default-branch).
+
 #### Workflow, how to train, etc
 - Place all the config files in `./configs` folder.
 - Experiments are logged to the `./experiments` folder. Each config file can (optionally) have an experiment name. The corresponding experiments are logged under the experiment name.
