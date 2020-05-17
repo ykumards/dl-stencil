@@ -104,10 +104,11 @@ def train_epoch(
         label_err = mu.label_errors(predicted_labels, y)
         # Copy the stats from GPU to CPU (sync point)
         loss, label_err = loss.item(), label_err.item()
+        update_metrics_values = {"loss": loss}
 
         train_meter.iter_toc()
         # Update and log stats
-        train_meter.update_stats(label_err, loss, x.size(0), lr)
+        train_meter.update_stats(label_err, update_metrics_values, x.size(0), lr)
         train_meter.log_iter_stats(cur_epoch, cur_iter)
         train_meter.iter_tic()
 
@@ -149,17 +150,18 @@ def test_epoch(
         label_err = mu.label_errors(predicted_labels, y)
         # Copy the stats from GPU to CPU (sync point)
         loss, label_err = loss.item(), label_err.item()
+        update_metrics_values = {"loss": loss}
 
         test_meter.iter_toc()
         # Update and log stats
-        test_meter.update_stats(label_err, loss, x.size(0))
+        test_meter.update_stats(label_err, update_metrics_values, x.size(0))
         test_meter.log_iter_stats(cur_epoch, cur_iter)
         test_meter.iter_tic()
 
     # Log epoch stats
     test_meter.log_epoch_stats(cur_epoch)
     test_meter.print_epoch_stats(cur_epoch)
-    epoch_loss = test_meter.loss_total / test_meter.num_samples
+    epoch_loss = test_meter.metrics_meters["loss"][1] / test_meter.num_samples
 
     if tb is not None:
         # log scalars
