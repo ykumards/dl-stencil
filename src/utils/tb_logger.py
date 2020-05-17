@@ -5,6 +5,7 @@ Largely based on Pytorch Ignite's tb_logger:
 https://github.com/pytorch/ignite/blob/master/ignite/contrib/handlers/tensorboard_logger.py
 """
 import torch
+
 try:
     from tensorboardX import SummaryWriter
 except ImportError:
@@ -15,7 +16,7 @@ class TensorboardLogger:
     def __init__(self, *args, **kwargs):
         self.writer = SummaryWriter(*args, **kwargs)
 
-    def write_scalar(self, tb_stats, cur_epoch, keys_to_use=['loss'], tag=""):
+    def write_scalar(self, tb_stats, cur_epoch, keys_to_use=["loss"], tag=""):
         for key, value in tb_stats.items():
             if key in keys_to_use:
                 self.writer.add_scalar("{}/{}".format(tag, key), value, cur_epoch)
@@ -51,7 +52,9 @@ class TensorboardLogger:
     def write_optim_scalar(self, optimizer, cur_epoch, param_name="lr", tag=None):
         tag_prefix = "{}/".format(tag) if tag else ""
         params = {
-            "{}{}/group_{}".format(tag_prefix, param_name, i): float(param_group[param_name])
+            "{}{}/group_{}".format(tag_prefix, param_name, i): float(
+                param_group[param_name]
+            )
             for i, param_group in enumerate(optimizer.param_groups)
         }
         for k, v in params.items():

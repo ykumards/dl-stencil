@@ -6,9 +6,7 @@ from core.config import cfg
 
 
 # Supported loss functions
-_loss_funs = {
-    "cross_entropy": nn.CrossEntropyLoss
-}
+_loss_funs = {"cross_entropy": nn.CrossEntropyLoss}
 
 
 def get_loss_fun():

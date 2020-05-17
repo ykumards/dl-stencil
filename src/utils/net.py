@@ -42,7 +42,7 @@ def compute_precise_bn_stats(model, loader):
         bn.momentum = 1.0
     # Accumulate the stats across the data samples
     for batch in itertools.islice(loader, num_iter):
-        model(batch['X'].to(cfg.DEVICE))
+        model(batch[0].to(cfg.DEVICE))
         # Accumulate the stats for each BN layer
         for i, bn in enumerate(bns):
             m, v = bn.running_mean, bn.running_var

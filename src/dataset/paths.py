@@ -6,7 +6,7 @@ _DEF_DATA_DIR = "/data"
 
 # Data paths
 _paths = {
-    "news": _DEF_DATA_DIR + "/counterfact_ds/",
+    "news": _DEF_DATA_DIR + "/mnist/",
 }
 
 

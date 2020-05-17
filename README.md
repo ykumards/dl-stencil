@@ -1,4 +1,4 @@
-# dl-stencil
+# dl-stencil (WIP)
 
 Template for a typical pytorch deep learning project based on [pycls](https://github.com/facebookresearch/pycls). Several modules (like tensorboard logging) also take from [Pytorch Ignite](https://github.com/pytorch/ignite).
 

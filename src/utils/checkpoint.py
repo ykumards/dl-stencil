@@ -38,12 +38,14 @@ def get_best_score_checkpoint():
     # Checkpoint file names are in lexicographic order
     checkpoints = [f for f in os.listdir(checkpoint_dir) if "best_" in f]
     best_checkpoint_val_loss = [
-        float('.'.join(x.split('=')[1].split('.')[0:2])) # checkpoint in format: name-00.00.pyth
-        for x in checkpoints]
+        float(
+            ".".join(x.split("=")[1].split(".")[0:2])
+        )  # checkpoint in format: name-00.00.pyth
+        for x in checkpoints
+    ]
     best_idx = np.array(best_checkpoint_val_loss).argmin()
     name = checkpoints[best_idx]
     return os.path.join(get_checkpoint_dir(), name)
-
 
 
 def get_last_checkpoint():

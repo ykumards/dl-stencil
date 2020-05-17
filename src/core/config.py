@@ -23,39 +23,14 @@ _C.MODEL = CN()
 # Model type
 _C.MODEL.TYPE = ""
 
-# Whether to use Tarnet ad DragonNet (ie. predict p(t|x) as well)
-_C.MODEL.IS_DRAGON = False
 # Model input dimension
 _C.MODEL.INPUT_DIM = 1
-# Dimension of continuous features
-_C.MODEL.DIM_CONT = 0
-# Dimension of binary+categorical features
-_C.MODEL.DIM_BIN = 0
 
-# Size of latent dimension
-_C.MODEL.Z_DIM = 64
+# Number of classes
+_C.MODEL.NUM_CLASSES = 10
 
-# Following are used in CEVAE
-# Decoder X network, hidden dimension
-_C.MODEL.DEC_X_HIDDEN_DIM = 10
-# Decoder X network, number of hidden layers
-_C.MODEL.DEC_X_NUM_HIDDEN = 1
-# Decoder Y network, hidden dimension
-_C.MODEL.DEC_Y_HIDDEN_DIM = 10
-# Decoder Y network, number of hidden layers
-_C.MODEL.DEC_Y_NUM_HIDDEN = 1
-
-# Encoder Y network, hidden dimension
-_C.MODEL.ENC_Y_HIDDEN_DIM = 10
-# Encoder Y network, number of hidden_layers
-_C.MODEL.ENC_Y_NUM_HIDDEN = 1
-# Encoder Z network, hidden dimension
-_C.MODEL.ENC_Z_HIDDEN_DIM = 10
-# Encoder Z network, number of hidden_layers
-_C.MODEL.ENC_Z_NUM_HIDDEN = 1
-
-# number of experts on decisions (d) for MoE VAE
-_C.MODEL.NUM_EXPERTS = 1
+# Is input in grayscale (=> 1 channel)
+_C.MODEL.GRAYSCALE = True
 
 # Loss function (see pycls/models/loss.py for options)
 _C.MODEL.LOSS_FUN = "bce_logits"
@@ -135,6 +110,8 @@ _C.TRAIN = CN()
 # Dataset and split
 _C.TRAIN.DATASET = ""
 _C.TRAIN.SPLIT = "train"
+# validation set size
+_C.TRAIN.VALID_SIZE = 0.2
 
 # Total mini-batch size
 _C.TRAIN.BATCH_SIZE = 128
@@ -155,7 +132,7 @@ _C.TRAIN.WEIGHTS = ""
 _C.TRAIN.ES_PATIENCE = 0
 
 # Loss threshold for early stopping
-_C.TRAIN.ES_THRESHOLD = 0.
+_C.TRAIN.ES_THRESHOLD = 0.0
 
 # Switch off KL term in VAE
 _C.TRAIN.SWITCHOFF_KL = False
@@ -229,33 +206,23 @@ _C.PREC_TIME.NUM_ITER = 30
 
 
 # ---------------------------------------------------------------------------- #
-# Ignite Handler options
-# ---------------------------------------------------------------------------- #
-_C.IGNITE_HANDLERS = CN()
-
-# Model Checkpoint
-# Number of checkpoints to save
-_C.IGNITE_HANDLERS.CKPT_NSAVED = 3
-# Checkpoint save interval
-_C.IGNITE_HANDLERS.CKPT_SAVE_INTERVAL = 5  # epochs
-# Checkpoint file prefix
-_C.IGNITE_HANDLERS.CKPT_PREFIX = ""
-
-
-# ---------------------------------------------------------------------------- #
 # Path options
 # ---------------------------------------------------------------------------- #
 _C.PATHS = CN()
+# Data path
+_C.PATHS.DATAPATH = ""
 # Output directory parent folder
 _C.PATHS.OUT_DIR = ""
 # Experiment name
 _C.PATHS.EXPERIMENT_NAME = ""
 # Get current timestamp
-_C.PATHS.TIMESTAMP = "at_" + datetime.now().strftime("%Y_%m_%d_%H_%M")
+_C.PATHS.TIMESTAMP = "at_" + datetime.now().strftime("%Y_%m_%d_%H_%M%S")
 # Outdirectory for TB logging
 _C.PATHS.TB_OUT_DIR = os.path.join(_C.PATHS.OUT_DIR, "tb_logs", _C.PATHS.TIMESTAMP)
 # Outdirectory for model checkpoints
-_C.PATHS.MODEL_OUT_DIR = os.path.join(_C.PATHS.OUT_DIR, "saved_models", _C.PATHS.TIMESTAMP)
+_C.PATHS.MODEL_OUT_DIR = os.path.join(
+    _C.PATHS.OUT_DIR, "saved_models", _C.PATHS.TIMESTAMP
+)
 
 # ---------------------------------------------------------------------------- #
 # Misc options

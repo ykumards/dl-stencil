@@ -47,61 +47,16 @@ class ScalarMeter(object):
         return self.total / self.count
 
 
-class CFRMeter(object):
-    """Measures counterfactual metrics."""
-    def __init__(self, datalen):
-        super().__init__()
-        # WARNING: Stores everything in working memory
-        self.datalen = datalen
-        self.y0pred_arr = np.ones((datalen,))*-1000
-        self.y1pred_arr = np.ones((datalen,))*-1000
-        self.y0_arr = np.ones((datalen,))*-1000
-        self.y1_arr = np.ones((datalen,))*-1000
-        self.offset = 0
-
-    def reset(self):
-        self.y0pred_arr = np.ones((self.datalen,))*-1000
-        self.y1pred_arr = np.ones((self.datalen,))*-1000
-        self.y0_arr = np.ones((self.datalen,))*-1000
-        self.y1_arr = np.ones((self.datalen,))*-1000
-        self.offset = 0
-
-    def add_values(self, y1_pred, y0_pred, y1, y0):
-        batch_size = y1_pred.shape[0]
-        self.y1pred_arr[self.offset:self.offset+batch_size] = y1_pred
-        self.y0pred_arr[self.offset:self.offset+batch_size] = y0_pred
-        self.y1_arr[self.offset:self.offset+batch_size] = y1
-        self.y0_arr[self.offset:self.offset+batch_size] = y0
-        self.offset += batch_size
-
-    def get_ite_true(self):
-        return self.y1_arr - self.y0_arr
-
-    def get_ite_pred(self):
-        return self.y1pred_arr - self.y0pred_arr
-
-    def get_pehe(self):
-        true_ite = self.get_ite_true()
-        pred_ite = self.get_ite_pred()
-        return np.sqrt(np.mean(np.square((true_ite) - (pred_ite))))
-
-    def get_abs_ate(self):
-        true_ite = self.get_ite_true()
-        pred_ite = self.get_ite_pred()
-        return np.abs(np.mean(pred_ite) - np.mean(true_ite))
-
-
 class Meter(object):
     "Measures and handles training/eval stats"
 
-    def __init__(self, epoch_iters, batch_size, mode='train'):
-        assert mode in ['train', 'valid', 'test'],\
-            "mode can only be train, val or test"
+    def __init__(self, epoch_iters, batch_size, mode="train"):
+        assert mode in ["train", "valid", "test"], "mode can only be train, val or test"
 
         self.mode = mode
         self.epoch_iters = epoch_iters
         self.max_iter = epoch_iters
-        if self.mode == 'train':
+        if self.mode == "train":
             self.max_iter *= cfg.OPTIM.MAX_EPOCH
 
         self.iter_timer = Timer()
@@ -114,8 +69,6 @@ class Meter(object):
         self.num_mis = 0
         self.num_samples = 0
 
-        self.cfr_meter = CFRMeter(epoch_iters * batch_size)
-
     def reset(self, timer=False):
         if timer:
             self.iter_timer.reset()
@@ -125,7 +78,6 @@ class Meter(object):
         self.mb_label_err.reset()
         self.num_mis = 0
         self.num_samples = 0
-        self.cfr_meter.reset()
 
     def iter_tic(self):
         self.iter_timer.tic()
@@ -155,7 +107,7 @@ class Meter(object):
             "loss": self.loss.get_win_median(),
             "mem": int(np.ceil(mem_usage)),
         }
-        if self.mode == 'train':
+        if self.mode == "train":
             eta_sec = self.iter_timer.average_time * (
                 self.max_iter - (cur_epoch * self.epoch_iters + cur_iter + 1)
             )
@@ -175,23 +127,15 @@ class Meter(object):
         mem_usage = metrics.gpu_mem_usage()
         label_err = self.num_mis / self.num_samples
         avg_loss = self.loss_total / self.num_samples
-        avg_pehe = self.cfr_meter.get_pehe()
-        avg_abs_ate = self.cfr_meter.get_abs_ate()
-        ate_pred = self.cfr_meter.get_ite_pred().mean()
-        ate_true = self.cfr_meter.get_ite_true().mean()
         stats = {
             "_type": "train_epoch",
             "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
             "time_avg": self.iter_timer.average_time,
             "label_err": label_err,
             "loss": avg_loss,
-            "pehe": avg_pehe,
-            "abs_ate": avg_abs_ate,
-            "ate_pred": ate_pred*100,
-            "ate_true": ate_true*100,
             "mem": int(np.ceil(mem_usage)),
         }
-        if self.mode == 'train':
+        if self.mode == "train":
             eta_sec = self.iter_timer.average_time * (
                 self.max_iter - (cur_epoch + 1) * self.epoch_iters
             )
@@ -208,7 +152,7 @@ class Meter(object):
     def print_epoch_stats(
         self,
         cur_epoch,
-        keys_to_print=['label_err', 'loss', 'pehe', 'abs_ate', 'ate_pred', 'ate_true']
+        keys_to_print=["label_err", "loss"],
     ):
         print_str = self.mode.upper() + ": "
         stats = self.get_epoch_stats(cur_epoch)
