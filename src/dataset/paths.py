@@ -2,6 +2,8 @@
 
 import os
 
+from core.config import cfg
+
 _DEF_DATA_DIR = "/data"
 
 # Data paths

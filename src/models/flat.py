@@ -110,12 +110,11 @@ class FlatVAE(nn.Module):
 
         z_dim = cfg.MODEL.Z_DIM
         hidden_dim = 400
-        is_mse_loss = True if cfg.MODEL.LOSS_FUN == "mse" else False
+        is_mse_loss = True if cfg.MODEL.LOSS_FUN == "mse_loss" else False
 
         self.is_mse_loss = is_mse_loss
         self.encoder = Encoder(z_dim, hidden_dim)
         self.decoder = Decoder(z_dim, hidden_dim, is_mse_loss)
-
         self.z_dim = z_dim
 
     def reparameterize(self, mean, logvar):

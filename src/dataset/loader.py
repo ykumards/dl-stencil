@@ -30,9 +30,7 @@ def _construct_loader(
     dataset_name, root, split, batch_size, shuffle, drop_last, transform
 ):
     """Constructs the data loader for the given dataset."""
-    assert dataset_name in _DATASET_CATALOG.keys(), "Dataset '{}' not supported".format(
-        dataset_name
-    )
+    assert dataset_name in _DATASET_CATALOG.keys(), f"Dataset '{dataset_name}' not supported"
     assert split in [
         "train",
         "valid",
@@ -40,9 +38,11 @@ def _construct_loader(
     ], "split can only be 'train', 'test' or 'valid'"
 
     train = True if split == "train" else False
+    # Retrieve the data path for the dataset
+    data_path = dp.get_data_path(dataset_name)
     # Construct the dataset
     dataset = _DATASET_CATALOG[dataset_name](
-        root=root, train=train, download=True, transform=transform
+        datapath=root, split=split
     )
     ds_sampler = None
     if split != "test":

@@ -68,7 +68,7 @@ def _prepare_batch(batch):
 
 
 def train_epoch(
-    train_loader: torch.data.utils.DataLoader,
+    train_loader: torch.utils.data.DataLoader,
     model: nn.Module,
     loss_funs: List,
     optimizer: torch.optim.Optimizer,
@@ -96,6 +96,7 @@ def train_epoch(
         kl_loss = loss_funs[1](mu, logvar)
         # Total loss is sum of reconc and kl_div
         loss = reconc_loss + kl_loss
+
         # Perform the backward pass
         optimizer.zero_grad()
         loss.backward()
@@ -107,9 +108,15 @@ def train_epoch(
         loss = loss.item()
         reconc_loss, kl_loss = reconc_loss.item(), kl_loss.item()
 
+        update_metrics_values = {
+            "loss": loss,
+            "reconc_loss": reconc_loss,
+            "kl_loss": kl_loss
+        }
+
         train_meter.iter_toc()
         # Update and log stats
-        train_meter.update_stats(loss, x.size(0), lr)
+        train_meter.update_stats(update_metrics_values, x.size(0), lr)
         train_meter.log_iter_stats(cur_epoch, cur_iter)
         train_meter.iter_tic()
 
@@ -123,7 +130,7 @@ def train_epoch(
         tb.write_scalar(
             epoch_stats,
             cur_epoch,
-            ["loss", "kl_loss", "reconc_loss", "label_err"],
+            list(update_metrics_values.keys()),
             tag=mode,
         )
 
@@ -139,7 +146,7 @@ def test_epoch(
     test_loader: torch.utils.data.DataLoader,
     model: nn.Module,
     loss_funs: List,
-    test_meter: Mete,
+    test_meter: Meter,
     cur_epoch: int,
     mode="test",
     tb=None,
@@ -165,16 +172,22 @@ def test_epoch(
         loss = loss.item()
         reconc_loss, kl_loss = reconc_loss.item(), kl_loss.item()
 
+        update_metrics_values = {
+            "loss": loss,
+            "reconc_loss": reconc_loss,
+            "kl_loss": kl_loss
+        }
+
         test_meter.iter_toc()
         # Update and log stats
-        test_meter.update_stats(loss, x.size(0))
+        test_meter.update_stats(update_metrics_values, x.size(0))
         test_meter.log_iter_stats(cur_epoch, cur_iter)
         test_meter.iter_tic()
 
     # Log epoch stats
     test_meter.log_epoch_stats(cur_epoch)
     test_meter.print_epoch_stats(cur_epoch)
-    epoch_loss = test_meter.loss_total / test_meter.num_samples
+    epoch_loss = test_meter.metrics_meters["loss"][1] / test_meter.num_samples
 
     if tb is not None:
         # log scalars
@@ -182,7 +195,7 @@ def test_epoch(
         tb.write_scalar(
             epoch_stats,
             cur_epoch,
-            ["loss", "kl_loss", "reconc_loss", "label_err"],
+            list(update_metrics_values.keys()),
             tag=mode,
         )
 
@@ -212,9 +225,10 @@ def train_model():
     test_loader = loader.construct_test_loader(root=cfg.PATHS.DATAPATH)
 
     # Create meters
-    train_meter = Meter(len(train_loader), cfg.TRAIN.BATCH_SIZE, mode="train")
-    val_meter = Meter(len(val_loader), cfg.TEST.BATCH_SIZE, mode="valid")
-    test_meter = Meter(len(val_loader), cfg.TEST.BATCH_SIZE, mode="test")
+    scalar_metrics = ["loss", "kl_loss", "reconc_loss"]
+    train_meter = Meter(len(train_loader), cfg.TRAIN.BATCH_SIZE, scalar_metrics, mode="train")
+    val_meter = Meter(len(val_loader), cfg.TEST.BATCH_SIZE, scalar_metrics, mode="valid")
+    test_meter = Meter(len(val_loader), cfg.TEST.BATCH_SIZE, scalar_metrics, mode="test")
 
     # setup tb logging
     tb = None
@@ -229,7 +243,7 @@ def train_model():
         train_epoch(
             train_loader,
             model,
-            loss_funs
+            loss_funs,
             optimizer,
             train_meter,
             cur_epoch,
@@ -246,7 +260,7 @@ def train_model():
         # Evaluate the model
         if is_eval_epoch(cur_epoch):
             val_loss = test_epoch(
-                val_loader, model, loss_funs val_meter, cur_epoch, mode="valid", tb=tb
+                val_loader, model, loss_funs, val_meter, cur_epoch, mode="valid", tb=tb
             )
             # Save the best model based on val score
             if val_loss < min_val_loss:
@@ -272,10 +286,10 @@ def train_model():
 
     print("=" * 100)
     test_epoch(
-        train_loader, model, loss_funs train_meter, cur_epoch, mode="train", tb=None
+        train_loader, model, loss_funs, train_meter, cur_epoch, mode="train", tb=None
     )
     test_epoch(
-        test_loader, model, loss_funs test_meter, cur_epoch, mode="test", tb=None
+        test_loader, model, loss_funs, test_meter, cur_epoch, mode="test", tb=None
     )
 
     if tb is not None:

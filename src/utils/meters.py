@@ -50,7 +50,7 @@ class ScalarMeter(object):
 class Meter(object):
     "Measures and handles training/eval stats"
 
-    def __init__(self, epoch_iters, batch_size, mode="train"):
+    def __init__(self, epoch_iters, batch_size, scalar_metrics=["loss"], mode="train"):
         assert mode in ["train", "valid", "test"], "mode can only be train, val or test"
 
         self.mode = mode
@@ -60,23 +60,20 @@ class Meter(object):
             self.max_iter *= cfg.OPTIM.MAX_EPOCH
 
         self.iter_timer = Timer()
-        self.loss = ScalarMeter(cfg.LOG_PERIOD)
-        self.loss_total = 0.0
+        self.metrics_meters = {metric_name: [ScalarMeter(cfg.LOG_PERIOD), 0.] for metric_name in scalar_metrics}
         self.lr = None
         # Current minibatch errors (smoothed over a window)
-        self.mb_label_err = ScalarMeter(cfg.LOG_PERIOD)
-        # Number of misclassified examples
-        self.num_mis = 0
         self.num_samples = 0
 
     def reset(self, timer=False):
         if timer:
             self.iter_timer.reset()
-        self.loss.reset()
-        self.loss_total = 0.0
+        # TODO refactor into meters
+        for k, (sc_meter, _) in self.metrics_meters.items():
+            sc_meter.reset()
+            self.metrics_meters[k][1] = 0.
+
         self.lr = None
-        self.mb_label_err.reset()
-        self.num_mis = 0
         self.num_samples = 0
 
     def iter_tic(self):
@@ -85,14 +82,15 @@ class Meter(object):
     def iter_toc(self):
         self.iter_timer.toc()
 
-    def update_stats(self, label_err, loss, mb_size, lr=None):
+    def update_stats(self, update_metrics_values, mb_size, lr=None):
         # Current minibatch stats
-        self.mb_label_err.add_value(label_err)
-        self.loss.add_value(loss)
+        for k, value in update_metrics_values.items():
+            if k in self.metrics_meters:
+                self.metrics_meters[k][0].add_value(value)
+                self.metrics_meters[k][1] += value * mb_size
+
         self.lr = lr
         # Aggregate stats
-        self.num_mis += label_err * mb_size
-        self.loss_total += loss * mb_size
         self.num_samples += mb_size
 
     def get_iter_stats(self, cur_epoch, cur_iter):
@@ -103,10 +101,11 @@ class Meter(object):
             "iter": "{}/{}".format(cur_iter + 1, self.epoch_iters),
             "time_avg": self.iter_timer.average_time,
             "time_diff": self.iter_timer.diff,
-            "label_err": self.mb_label_err.get_win_median(),
-            "loss": self.loss.get_win_median(),
             "mem": int(np.ceil(mem_usage)),
         }
+        for k, (sc_meter, _) in self.metrics_meters.items():
+            stats[k] = sc_meter.get_win_avg()
+
         if self.mode == "train":
             eta_sec = self.iter_timer.average_time * (
                 self.max_iter - (cur_epoch * self.epoch_iters + cur_iter + 1)
@@ -125,16 +124,15 @@ class Meter(object):
 
     def get_epoch_stats(self, cur_epoch):
         mem_usage = metrics.gpu_mem_usage()
-        label_err = self.num_mis / self.num_samples
-        avg_loss = self.loss_total / self.num_samples
         stats = {
             "_type": "train_epoch",
             "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
             "time_avg": self.iter_timer.average_time,
-            "label_err": label_err,
-            "loss": avg_loss,
             "mem": int(np.ceil(mem_usage)),
         }
+        for k, (_, value) in self.metrics_meters.items():
+            stats[k] = value / self.num_samples
+
         if self.mode == "train":
             eta_sec = self.iter_timer.average_time * (
                 self.max_iter - (cur_epoch + 1) * self.epoch_iters
@@ -149,7 +147,11 @@ class Meter(object):
         stats = self.get_epoch_stats(cur_epoch)
         lu.log_json_stats(stats)
 
-    def print_epoch_stats(self, cur_epoch, keys_to_print=["label_err", "loss"]):
+    def print_epoch_stats(
+        self, cur_epoch, keys_to_print=None,
+    ):
+        if keys_to_print is None:
+            keys_to_print = list(self.metrics_meters.keys())
         print_str = self.mode.upper() + ": "
         stats = self.get_epoch_stats(cur_epoch)
         print_str += f"epoch : {stats['epoch']} "

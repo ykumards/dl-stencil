@@ -21,13 +21,13 @@ _SD = [63.0, 62.1, 66.7]
 class Cifar10(torch.utils.data.Dataset):
     """CIFAR-10 dataset."""
 
-    def __init__(self, data_path, split):
-        assert os.path.exists(data_path), "Data path '{}' not found".format(data_path)
-        assert split in ["train", "test"], "Split '{}' not supported for cifar".format(
+    def __init__(self, datapath, split):
+        assert os.path.exists(datapath), "Data path '{}' not found".format(datapath)
+        assert split in ["train", "test", "valid"], "Split '{}' not supported for cifar".format(
             split
         )
         logger.info("Constructing CIFAR-10 {}...".format(split))
-        self._data_path = data_path
+        self._datapath = datapath
         self._split = split
         # Data format:
         #   self._inputs - (split_size, 3, im_size, im_size) ndarray
@@ -41,7 +41,7 @@ class Cifar10(torch.utils.data.Dataset):
 
     def _load_data(self):
         """Loads data in memory."""
-        logger.info("{} data path: {}".format(self._split, self._data_path))
+        logger.info("{} data path: {}".format(self._split, self._datapath))
         # Compute data batch names
         if self._split == "train":
             batch_names = ["data_batch_{}".format(i) for i in range(1, 6)]
@@ -50,7 +50,7 @@ class Cifar10(torch.utils.data.Dataset):
         # Load data batches
         inputs, labels = [], []
         for batch_name in batch_names:
-            batch_path = os.path.join(self._data_path, batch_name)
+            batch_path = os.path.join(self._datapath, batch_name)
             inputs_batch, labels_batch = self._load_batch(batch_path)
             inputs.append(inputs_batch)
             labels += labels_batch
